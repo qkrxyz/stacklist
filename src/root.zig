@@ -44,7 +44,7 @@ pub fn StackList(comptime T: type, stack: []T) type {
                 stack[0..self.len];
         }
 
-        pub fn ensureTotalCapacity(self: *Self, new_capacity: u32, allocator: std.mem.Allocator) !void {
+        pub fn ensureTotalCapacity(self: *Self, allocator: std.mem.Allocator, new_capacity: u32) !void {
             const on_heap = self.allocated();
             const old = self.slice();
 
@@ -84,10 +84,10 @@ pub fn StackList(comptime T: type, stack: []T) type {
             self.capacity = new_capacity;
         }
 
-        pub fn append(self: *Self, value: T, allocator: std.mem.Allocator) !void {
+        pub fn append(self: *Self, allocator: std.mem.Allocator, value: T) !void {
             const length = self.len;
 
-            try ensureTotalCapacity(self, length + 1, allocator);
+            try ensureTotalCapacity(self, allocator, length + 1);
             self.len += 1;
 
             if (self.allocated()) {
@@ -97,10 +97,10 @@ pub fn StackList(comptime T: type, stack: []T) type {
             }
         }
 
-        pub fn appendSlice(self: *Self, value: []const T, allocator: std.mem.Allocator) !void {
+        pub fn appendSlice(self: *Self, allocator: std.mem.Allocator, value: []const T) !void {
             const length = self.len;
 
-            try ensureTotalCapacity(self, length + @as(u32, @intCast(value.len)), allocator);
+            try ensureTotalCapacity(self, allocator, length + @as(u32, @intCast(value.len)));
 
             if (self.allocated()) {
                 @memcpy(self.heap[length..self.capacity], value);
