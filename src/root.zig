@@ -49,7 +49,7 @@ pub fn StackList(comptime T: type, stack: []T) type {
             const old = self.slice();
 
             // Should go back to the stack; free all heap-allocated memory.
-            if (new_capacity <= stack.len) {
+            if (new_capacity <= stack.len and self.len > stack.len) {
                 if (on_heap) {
                     @memcpy(stack[0..stack.len], old[0..stack.len]);
                     allocator.free(old);
