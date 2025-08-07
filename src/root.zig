@@ -45,6 +45,8 @@ pub fn StackList(comptime T: type, stack: []T) type {
         }
 
         pub fn ensureTotalCapacity(self: *Self, allocator: std.mem.Allocator, new_capacity: u32) !void {
+            if (self.capacity >= new_capacity) return;
+
             const on_heap = self.allocated();
             const old = self.slice();
 
