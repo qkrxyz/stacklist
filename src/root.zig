@@ -1,5 +1,7 @@
-pub fn StackList(comptime T: type, stack: []T) type {
+pub fn StackList(comptime T: type, comptime N: comptime_int) type {
     return extern struct {
+        var stack: [N]T = undefined;
+
         const Self = @This();
 
         capacity: u32,
@@ -51,20 +53,17 @@ pub fn StackList(comptime T: type, stack: []T) type {
             const old = self.slice();
 
             // Should go back to the stack; free all heap-allocated memory.
-            if (new_capacity <= stack.len or self.len > stack.len) {
+            if (new_capacity < stack.len or self.len > stack.len) {
                 if (on_heap) {
                     @memcpy(stack[0..stack.len], old[0..stack.len]);
                     allocator.free(old);
+
+                    self.capacity = stack.len;
                 }
-                self.capacity = stack.len;
 
                 return;
             }
 
-            // Don't remap unallocated memory.
-            //
-            // Reference implementation:
-            // https://ziglang.org/documentation/master/std/#std.array_list.ArrayListAligned.ensureTotalCapacityPrecise
             if (on_heap) {
                 if (allocator.remap(
                     self.heap[0..self.len],
@@ -90,13 +89,14 @@ pub fn StackList(comptime T: type, stack: []T) type {
             const length = self.len;
 
             try ensureTotalCapacity(self, allocator, length + 1);
-            self.len += 1;
 
             if (self.allocated()) {
                 self.heap[length] = value;
             } else {
                 stack[length] = value;
             }
+
+            self.len += 1;
         }
 
         pub fn appendSlice(self: *Self, allocator: std.mem.Allocator, value: []const T) !void {
@@ -113,15 +113,31 @@ pub fn StackList(comptime T: type, stack: []T) type {
             self.len += @intCast(value.len);
         }
 
-        pub fn orderedRemove(self: *Self, index: u32) T {
-            const s = self.slice();
+        pub fn orderedRemove(self: *Self, index: u32) void {
+            const len = self.len;
 
-            const old = s[index];
-            @memmove(s[index .. s.len - 1], s[index + 1 ..]);
+            if (self.allocated()) {
+                @memmove(self.heap[index - 1 .. len - 1], stack[index..len]);
+            } else {
+                @memmove(stack[index - 1 .. len - 1], stack[index..len]);
+            }
 
             self.len -= 1;
+        }
 
-            return old;
+        pub fn insert(self: *Self, allocator: std.mem.Allocator, index: u32, value: T) !void {
+            const length = self.len;
+
+            try ensureTotalCapacity(self, allocator, length + 1);
+            self.len += 1;
+
+            if (self.allocated()) {
+                @memmove(self.heap[index + 1 .. length + 1], self.heap[index..length]);
+                self.heap[index] = value;
+            } else {
+                @memmove(stack[index + 1 .. length + 1], stack[index..length]);
+                stack[index] = value;
+            }
         }
     };
 }
