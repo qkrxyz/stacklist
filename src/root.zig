@@ -39,6 +39,11 @@ pub fn StackList(comptime T: type, comptime N: comptime_int) type {
             return @constCast(&self.slice()[index]); // `@constCast` is always safe
         }
 
+        /// Caller must assert index < self.len.
+        pub inline fn get(self: *const Self, index: usize) T {
+            return self.slice()[index];
+        }
+
         pub fn slice(self: *const Self) []T {
             return if (self.allocated())
                 self.heap[0..self.len]
